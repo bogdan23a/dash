@@ -1,34 +1,35 @@
-import time
+from flask import Flask, jsonify, render_template, request
 import psutil
-from flask import Flask
-from flask import render_template
-
 
 app = Flask(__name__)
 
-def displayMB():
-    old_value = 0    
+new_value = 0
+old_value = 0
 
-    while True:
-        new_value = psutil.net_io_counters().bytes_sent + psutil.net_io_counters().bytes_recv
+def measureBandwidth():
 
-        if old_value:
-            send_stat(new_value - old_value)
+    global new_value
+    global old_value
 
-        old_value = new_value
+    new_value = psutil.net_io_counters().bytes_sent + psutil.net_io_counters().bytes_recv
 
-        time.sleep(1)
+    return new_value - old_value
 
-def convert_to_mbit(value):
-    return value/1024./1024.*8
+@app.route('/_get_bandwidth')
+def get_bandwidth():
 
-def send_stat(value):
-    return ("%0.3f MB" % convert_to_mbit(value))
-    
+    global old_value 
+    global new_value
+
+    old_value = request.args.get('old_value', 0, type=float) + new_value
+    bandwidth = measureBandwidth()
+
+    return jsonify(result=bandwidth)
+
 @app.route('/')
-def hello_world(name=None):
-    return "12"
+def index():
+    return render_template('index.html')
 
 if __name__ == "__main__":
 
-    app.run(host='127.0.0.1', port='5000')
+    app.run(debug=True)

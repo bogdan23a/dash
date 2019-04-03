@@ -1,7 +1,106 @@
-<!doctype html>
-<title>Hello from Flask</title>
-<!-- {% if name %} -->
-  <h1>Hello {{ name }}!</h1>
-<!-- {% else %} -->
-  <!-- <h1>Hello, World!</h1> -->
-<!-- {% endif %} -->
+<html>
+  <head>
+    <title>Dash</title>
+    <link rel="stylesheet" type="text/css" href="{{url_for('static', filename='css/index.css')}}">
+  </head>
+  <body>
+    
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  
+    <script type=text/javascript>
+      // $(".progress").each(function(){
+
+      //   var $bar = $(this).find('.bar');
+      //   var perc = parseInt($val.text(), 10);
+
+      //   $({p:0}).animate({p:perc}, {
+
+      //     duration: 300,
+      //     easing: "swing",
+      //     step: function(p) {
+
+      //       $bar.css("transform", "rotate(" + (45 + (p*1.8)) + "deg)");
+      //       $val.text(p|0);
+      //     }
+      //   });
+      // });
+      var unit = 0;
+      var old_value = 0;
+      function convert(value) {
+
+        unit = 0;
+        value = value * 8
+        
+        while(value > 1024){
+
+          value = value / 1024;
+          unit++;
+
+        }
+        return value
+      }
+
+      $(function() {
+
+        window.setInterval(function(){
+          $.getJSON($SCRIPT_ROOT + '/_get_bandwidth', {
+
+            old_value: $('span').text()
+
+          }, function(data) {
+            
+            value = convert(data.result)
+            message = "Bytes";
+
+            switch(unit){
+
+              case 0: message = "Bytes"; break;
+              case 1: message = "KB"; break;
+              case 2: message = "MB"; break;
+              case 3: message = "GB"; break;
+              case 4: message = "TB";  break
+            }
+
+            $("#bandwidth").text(value.toFixed(3) + " " + message);
+            $(".progress").each(function(){
+
+              $({p:old_value}).animate({p:value}, {
+                duration: 1000,
+                easing: "swing",
+                step: function(p){
+
+                  var finalP;
+                  switch(unit){
+
+                    case 0: finalP = p / 8; break;
+                    case 1: finalP = p / 4; break;
+                    case 2: finalP = p / 2; break;
+                    case 3: finalP = p; break;
+                  }
+
+                  $(".bar").css({
+                    transform: "rotate(" + (45 + (finalP * 1.8)) + "deg)",
+                  });
+                }
+              });
+            });
+          });
+          old_value = value
+          return false;
+        }, 1000);
+      });
+    </script>
+  
+  <div class="progress">
+    <div class="barOverflow">
+      <div class="bar"></div>
+    </div>
+  </div>
+  <p><span id=bandwidth>Getting Data</span>
+
+  <script type=text/javascript>
+    $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+  </script>
+
+  </body>
+</html>
